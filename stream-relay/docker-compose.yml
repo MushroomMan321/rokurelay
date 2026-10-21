@@ -1,0 +1,21 @@
+services:
+  stream-relay:
+    build: .
+    image: stream-relay:latest
+    container_name: stream-relay
+    restart: unless-stopped
+    # Host networking lets the relay discover Rokus over SSDP and means the address
+    # it tells the TV is the box's real LAN IP. Linux hosts only. On Docker Desktop,
+    # remove this line, uncomment "ports", and set PUBLIC_BASE_URL + ROKU_DEVICES.
+    network_mode: host
+    # ports:
+    #   - "8080:8080"
+    env_file: .env
+    volumes:
+      - ./data:/data          # cookies.txt + last cast (resumed after restarts)
+    tmpfs:
+      - /tmp/stream-relay:size=2g,mode=1777   # FFmpeg's HLS output
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"

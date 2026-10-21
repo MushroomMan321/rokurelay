@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>RokuRelay</title>
+<style>
+  :root {
+    --bg: #0b0f14; --card: #131a22; --line: #223040; --text: #e6edf3; --muted: #8aa0b4;
+    --accent: #3fa7ff; --ok: #3ccf8e; --warn: #f2b84b; --bad: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 16px 16px 48px; }
+  h1 { font-size: 20px; margin: 4px 0 16px; display: flex; align-items: center; gap: 8px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 10px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  input, textarea, select { width: 100%; background: #0e141b; color: var(--text); border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px; font: inherit; font-size: 16px; }
+  textarea { min-height: 64px; resize: vertical; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+  button { font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 12px 16px; cursor: pointer;
+    background: #1d2a38; color: var(--text); }
+  button.primary { background: var(--accent); color: #04121f; width: 100%; padding: 14px; font-size: 17px; margin-top: 14px; }
+  button:disabled { opacity: .5; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .row button { flex: 1; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 14px; margin-top: 12px; }
+  .state { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 99px; background: #1d2a38; }
+  .state.ready { background: rgba(60,207,142,.15); color: var(--ok); }
+  .state.resolving { background: rgba(242,184,75,.15); color: var(--warn); }
+  .state.error { background: rgba(255,107,107,.15); color: var(--bad); }
+  .title { font-size: 17px; font-weight: 600; margin: 8px 0 2px; word-break: break-word; }
+  .meta { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+  .err { color: var(--bad); font-size: 14px; margin-top: 6px; word-break: break-word; }
+  .events { font: 12px/1.5 ui-monospace, Menlo, Consolas, monospace; color: var(--muted); max-height: 220px; overflow: auto;
+    margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+  .events div { word-break: break-word; }
+  .tvs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tvs label { display: flex; align-items: center; gap: 6px; margin: 0; background: #0e141b; border: 1px solid var(--line);
+    border-radius: 99px; padding: 6px 12px; color: var(--text); font-size: 14px; }
+  .tvs input { width: auto; }
+  .check { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 14px; }
+  .check input { width: auto; }
+  code, .bm { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+  .bm { display: block; background: #0e141b; border: 1px solid var(--line); border-radius: 10px; padding: 10px; word-break: break-all;
+    max-height: 90px; overflow: auto; color: var(--muted); }
+  a { color: var(--accent); }
+  .bmlink { display: inline-block; background: #1d2a38; padding: 8px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; margin: 6px 0; }
+  ol { padding-left: 20px; margin: 6px 0; font-size: 14px; }
+  li { margin: 4px 0; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: #1d2a38; padding: 10px 16px;
+    border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<main>
+  <h1>📺 Stream Relay</h1>
+
+  <section class="card" id="now">
+    <h2>Now playing</h2>
+    <span class="state" id="state">idle</span>
+    <div class="title" id="title">Nothing cast yet</div>
+    <div class="meta" id="meta"></div>
+    <div class="err" id="error" hidden></div>
+    <div class="row" style="margin-top:12px">
+      <button id="btnRefresh" title="Re-resolve the link (new tokens)">↻ Refresh</button>
+      <button id="btnRelaunch" title="Switch the TV to the channel again">📺 To TV</button>
+      <button id="btnStop">■ Stop</button>
+    </div>
+    <details>
+      <summary>Activity log</summary>
+      <div class="events" id="events"></div>
+    </details>
+  </section>
+
+  <form class="card" id="castForm" autocomplete="off">
+    <h2>Cast a link</h2>
+    <label for="url">Page or stream link</label>
+    <input id="url" name="url" type="url" inputmode="url" placeholder="https://…" required>
+
+    <label>TV</label>
+    <div class="tvs" id="tvs"><span class="meta">Loading…</span></div>
+
+    <details>
+      <summary>Advanced: headers, cookies, mode</summary>
+      <label for="stream_url">Direct stream URL (.m3u8 / .mpd / .mp4) — optional</label>
+      <input id="stream_url" name="stream_url" type="url" placeholder="Leave blank to let the relay find it">
+      <label for="referer">Referer</label>
+      <input id="referer" name="referer" type="url" placeholder="Defaults to the page link">
+      <label for="user_agent">User-Agent override</label>
+      <input id="user_agent" name="user_agent" placeholder="Blank = this phone's UA for direct streams">
+      <label for="cookies">Cookies</label>
+      <textarea id="cookies" name="cookies" placeholder="name=value; other=value"></textarea>
+      <label for="headers">Extra headers (one per line)</label>
+      <textarea id="headers" name="headers" placeholder="Origin: https://example.com"></textarea>
+      <label for="mode">Mode</label>
+      <select id="mode" name="mode">
+        <option value="auto">Auto (sniffed link → yt-dlp → page scan)</option>
+        <option value="direct">Direct — the link is the stream</option>
+        <option value="ytdlp">yt-dlp only</option>
+        <option value="scan">Scan page HTML for .m3u8</option>
+        <option value="browser">Headless browser sniff (what does the player load?)</option>
+        <option value="ffmpeg">Force FFmpeg conversion</option>
+      </select>
+      <label class="check"><input type="checkbox" id="launch" checked> Switch the TV to the channel</label>
+    </details>
+    <button class="primary" type="submit" id="btnCast">Cast to TV</button>
+  </form>
+
+  <section class="card">
+    <h2>Send from your phone in one tap</h2>
+    <p class="meta" style="margin-top:0">A shortcut that grabs the stream your browser is <em>already</em> playing works best —
+      it reuses the exact link and tokens your phone got.</p>
+
+    <strong>Bookmarklet (Android Chrome, desktop)</strong>
+    <ol>
+      <li>Bookmark any page, then edit the bookmark: name it <code>cast</code> and paste this as the URL:</li>
+    </ol>
+    <span class="bm" id="bookmarklet"></span>
+    <div class="row" style="margin-top:8px"><button type="button" id="copyBm">Copy bookmarklet</button></div>
+    <a class="bmlink" id="bmlink" href="#">⇢ Cast (drag to bookmarks bar)</a>
+    <ol start="2">
+      <li>Start the video on the site, then type <code>cast</code> in the address bar and tap the bookmark.</li>
+    </ol>
+
+    <strong>iOS Shortcut (Safari share sheet)</strong>
+    <ol>
+      <li>New Shortcut → <em>Show in Share Sheet</em>, accepts <em>Safari web pages</em>.</li>
+      <li>Add <em>Run JavaScript on Web Page</em> and paste <a href="/static/ios-shortcut.js" target="_blank">this script</a>.</li>
+      <li>Add <em>Get Contents of URL</em>: <code id="castApi"></code>, Method <code>POST</code>,
+        header <code>Content-Type: application/json</code>, Request Body <em>File</em> = the JavaScript result.</li>
+      <li>Play the stream in Safari, tap Share → your shortcut.</li>
+    </ol>
+
+    <strong>Android share menu</strong>
+    <ol>
+      <li>Install <em>HTTP Shortcuts</em>, create a shortcut that accepts shared text.</li>
+      <li>URL: <code id="shareApi"></code><code>?text={shared text}</code>, method GET.</li>
+    </ol>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const origin = location.origin;
+  const tokenKey = "relayToken";
+  let token = "";
+  try { token = new URLSearchParams(location.search).get("token") || localStorage.getItem(tokenKey) || ""; } catch (e) {}
+  if (token) { try { localStorage.setItem(tokenKey, token); } catch (e) {} }
+
+  function toast(msg) {
+    const t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove("show"), 2600);
+  }
+
+  async function api(path, body) {
+    const opts = { method: body === undefined ? "GET" : "POST", headers: {} };
+    if (token) opts.headers["X-Relay-Token"] = token;
+    if (body !== undefined) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+    const res = await fetch(path, opts);
+    if (res.status === 401) {
+      const t = prompt("Relay token:");
+      if (t) { token = t; try { localStorage.setItem(tokenKey, t); } catch (e) {} return api(path, body); }
+    }
+    if (!res.ok) throw new Error((await res.text()) || res.statusText);
+    return res.json();
+  }
+
+  // --- status ---------------------------------------------------------------
+  function ago(t) { const s = Math.max(0, Date.now() / 1000 - t); return s < 60 ? `${s | 0}s` : `${(s / 60) | 0}m`; }
+
+  function render(st) {
+    const state = st.state || "idle";
+    const el = $("state"); el.textContent = state; el.className = "state " + state;
+    $("title").textContent = st.title || (state === "idle" ? "Nothing cast yet" : "…");
+    const bits = [];
+    if (st.via) bits.push(st.via);
+    if (st.kind) bits.push(st.kind === "ffmpeg" ? "converted with FFmpeg" : st.kind);
+    if (st.live) bits.push("live");
+    if (st.expires_at) bits.push("link expires in " + Math.max(0, Math.round((st.expires_at - Date.now() / 1000) / 60)) + " min");
+    if (st.stats) bits.push(`${st.stats.segments} segments · ${st.stats.retries} retries · ${st.stats.refreshes} refreshes`);
+    $("meta").textContent = bits.join(" · ");
+    $("error").hidden = !st.error; $("error").textContent = st.error || "";
+    const ev = $("events");
+    ev.innerHTML = "";
+    (st.events || []).slice().reverse().forEach((e) => {
+      const d = document.createElement("div"); d.textContent = `${ago(e.t)} ago  ${e.msg}`; ev.appendChild(d);
+    });
+    const live = state !== "idle";
+    $("btnRefresh").disabled = !live; $("btnRelaunch").disabled = !live; $("btnStop").disabled = !live;
+  }
+
+  async function poll() {
+    try { render(await api("/api/status")); } catch (e) { /* relay restarting */ }
+  }
+  poll(); setInterval(poll, 2000);
+
+  // --- devices --------------------------------------------------------------
+  async function loadDevices() {
+    const box = $("tvs");
+    try {
+      const { devices } = await api("/api/devices");
+      box.innerHTML = "";
+      if (!devices.length) { box.innerHTML = '<span class="meta">No Roku configured: set ROKU_DEVICES. A TV with the channel open still picks up casts.</span>'; return; }
+      const hint = document.createElement("div");
+      hint.className = "meta"; hint.style.width = "100%";
+      hint.textContent = "Shortcuts and the bookmarklet use the TVs you pick here last.";
+      devices.forEach((d) => {
+        const l = document.createElement("label");
+        l.innerHTML = `<input type="checkbox" name="device"> `;
+        l.querySelector("input").checked = !!d.selected;
+        l.querySelector("input").value = d.serial || d.host;
+        l.appendChild(document.createTextNode(d.name));
+        box.appendChild(l);
+      });
+      box.appendChild(hint);
+    } catch (e) { box.textContent = "Could not load devices"; }
+  }
+  loadDevices();
+
+  // --- cast -----------------------------------------------------------------
+  $("castForm").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const f = ev.target;
+    const body = {
+      url: f.url.value.trim(),
+      stream_url: f.stream_url.value.trim() || undefined,
+      referer: f.referer.value.trim() || undefined,
+      user_agent: f.user_agent.value.trim() || undefined,
+      client_user_agent: navigator.userAgent,
+      cookies: f.cookies.value.trim() || undefined,
+      headers: f.headers.value.trim() || undefined,
+      mode: f.mode.value,
+      launch: $("launch").checked,
+      devices: [...document.querySelectorAll('input[name="device"]:checked')].map((i) => i.value),
+    };
+    const btn = $("btnCast"); btn.disabled = true; btn.textContent = "Casting…";
+    try { render(await api("/api/cast", body)); toast("Sent — the TV will start in a few seconds"); f.url.value = ""; }
+    catch (e) { toast("Cast failed: " + e.message); }
+    finally { btn.disabled = false; btn.textContent = "Cast to TV"; }
+  });
+
+  $("btnStop").onclick = async () => { render(await api("/api/stop", {})); toast("Stopped"); };
+  $("btnRefresh").onclick = async () => {
+    toast("Refreshing link…");
+    try { const r = await api("/api/refresh", {}); toast(r.ok ? "Link refreshed" : "Refresh failed — see log"); poll(); }
+    catch (e) { toast(e.message); }
+  };
+  $("btnRelaunch").onclick = async () => {
+    try {
+      const { results } = await api("/api/relaunch", {});
+      toast(results.length ? results.map((r) => `${r.device}: ${r.ok ? "ok" : r.detail}`).join(" · ") : "No TVs configured");
+    } catch (e) { toast(e.message); }
+  };
+
+  // --- hand-off helpers ------------------------------------------------------
+  const tokenParam = token ? `p.set('token',${JSON.stringify(token)});` : "";
+  // Runs on the video's page: collect the manifests its player already fetched and
+  // hand them to the relay. Alerts instead of failing silently.
+  const bm = "javascript:(()=>{try{const R=" + JSON.stringify(origin) + ";const s=new Set(),c=[];" +
+    "const ok=u=>u&&/^https?:/i.test(u)&&/\\.m3u8|\\.mpd|format=m3u8|mpegurl|\\.mp4(\\?|$)/i.test(u);" +
+    "const add=u=>{if(ok(u)&&!s.has(u)){s.add(u);c.push(u)}};" +
+    "performance.getEntriesByType('resource').forEach(e=>add(e.name));" +
+    "document.querySelectorAll('video,source').forEach(v=>add(v.currentSrc||v.src));" +
+    "const fr=[...document.querySelectorAll('iframe')].map(f=>f.src).filter(x=>/^https?:/.test(x)).slice(0,4);" +
+    "if(!c.length&&!confirm('RokuRelay: no playing video found on this page'+(fr.length?' (the player may be in an embedded frame)':'')+'. Send the page link anyway?'))return;" +
+    "const p=new URLSearchParams({url:location.href,ua:navigator.userAgent,title:document.title});" +
+    "c.slice(0,6).forEach(u=>p.append('candidate',u));fr.forEach(f=>p.append('frame',f));" +
+    tokenParam + "location.href=R+'/share?'+p}catch(e){alert('RokuRelay bookmarklet failed: '+e)}})()";
+  $("bookmarklet").textContent = bm;
+  $("bmlink").href = bm;
+  $("copyBm").onclick = () => {
+    const done = () => toast("Copied");
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(bm).then(done);
+    else { const r = document.createRange(); r.selectNodeContents($("bookmarklet")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); document.execCommand("copy"); done(); }
+  };
+  $("castApi").textContent = origin + "/api/cast";
+  $("shareApi").textContent = origin + "/share";
+
+  if (new URLSearchParams(location.search).get("cast")) toast("Got it — casting to the TV");
+})();
+</script>
+</body>
+</html>

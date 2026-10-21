@@ -1,0 +1,11 @@
+{
+  "name": "stream-relay-roku",
+  "private": true,
+  "description": "Lint the channel with the BrighterScript compiler (no Roku needed).",
+  "scripts": {
+    "lint": "bsc --project bsconfig.json"
+  },
+  "devDependencies": {
+    "brighterscript": "0.73.7"
+  }
+}

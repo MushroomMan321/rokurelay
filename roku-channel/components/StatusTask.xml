@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Polls the relay's /api/status off the render thread. -->
+<component name="StatusTask" extends="Task">
+    <interface>
+        <field id="relayUrl" type="string" />
+        <field id="interval" type="integer" value="3" />
+        <field id="status" type="assocarray" />
+        <field id="reachable" type="boolean" value="true" />
+        <field id="pollNow" type="boolean" alwaysNotify="true" />
+        <field id="heal" type="boolean" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/components/StatusTask.brs" />
+</component>

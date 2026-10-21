@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="MainScene" extends="Scene">
+    <interface>
+        <field id="relayUrl" type="string" onChange="onRelayUrlChanged" />
+        <field id="deepLink" type="assocarray" alwaysNotify="true" onChange="onDeepLink" />
+        <field id="exitApp" type="boolean" />
+    </interface>
+
+    <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+
+    <children>
+        <Rectangle id="background" width="1920" height="1080" color="0x0B0F14FF" />
+        <Video id="video" width="1920" height="1080" translation="[0,0]" enableUI="true" />
+
+        <Group id="overlay">
+            <Rectangle id="panel" translation="[96,792]" width="1728" height="200" color="0x05080CD8" />
+            <Rectangle id="accent" translation="[96,792]" width="8" height="200" color="0x3FA7FFFF" />
+            <Label id="titleLabel" translation="[144,820]" width="1640" height="60"
+                font="font:MediumBoldSystemFont" color="0xE6EDF3FF" wrap="false" />
+            <Label id="statusLabel" translation="[144,884]" width="1640" height="56"
+                font="font:SmallSystemFont" color="0xA9BCCCFF" wrap="true" maxLines="2" />
+            <Label id="hintLabel" translation="[144,944]" width="1640" height="36"
+                font="font:SmallestSystemFont" color="0x6F8496FF"
+                text="Up: info   *: refresh link   Back: exit" />
+        </Group>
+
+        <Timer id="retryTimer" repeat="false" duration="2" />
+        <Timer id="watchdog" repeat="true" duration="5" />
+        <Timer id="overlayTimer" repeat="false" duration="5" />
+    </children>
+</component>

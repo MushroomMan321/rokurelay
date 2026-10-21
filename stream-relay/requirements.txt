@@ -1,0 +1,10 @@
+aiohttp>=3.10,<4
+yarl>=1.9
+# [default] pulls in yt-dlp-ejs (YouTube JS challenges); curl-cffi lets yt-dlp
+# impersonate a real browser on Cloudflare-fronted sites.
+yt-dlp[default,curl-cffi]>=2026.8.19
+# Browser sniff fallback (BROWSER_SNIFF). Bare-metal installs also need:
+#   playwright install chromium
+playwright>=1.49
+# Browser-fingerprint HTTP client (relay/curlclient.py) for CDNs that 403 aiohttp.
+curl-cffi>=0.16

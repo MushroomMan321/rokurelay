@@ -1,0 +1,22 @@
+title=RokuRelay
+subtitle=Plays whatever you cast from your phone
+major_version=1
+minor_version=0
+build_version=1
+
+mm_icon_focus_fhd=pkg:/images/icon_focus_fhd.png
+mm_icon_focus_hd=pkg:/images/icon_focus_hd.png
+mm_icon_focus_sd=pkg:/images/icon_focus_sd.png
+splash_screen_fhd=pkg:/images/splash_fhd.png
+splash_screen_hd=pkg:/images/splash_hd.png
+splash_screen_sd=pkg:/images/splash_sd.png
+splash_color=#0B0F14
+splash_min_time=500
+
+ui_resolutions=fhd
+rsg_version=1.2
+supports_input_launch=1
+
+# Default relay address. tools/roku_channel.py rewrites this when packaging, and the
+# relay also passes its address on every launch (saved to the registry).
+relay_url=http://192.168.1.10:8080
